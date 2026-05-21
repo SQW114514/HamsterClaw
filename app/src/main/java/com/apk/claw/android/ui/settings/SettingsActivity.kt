@@ -16,6 +16,8 @@ import com.apk.claw.android.widget.MenuItem
 import kotlinx.coroutines.launch
 import android.content.Intent
 import com.apk.claw.android.appViewModel
+import com.apk.claw.android.ui.chat.ChatActivity
+import com.apk.claw.android.utils.KVUtils
 import com.apk.claw.android.server.ConfigServerManager
 
 /**
@@ -125,9 +127,16 @@ class SettingsActivity : BaseActivity() {
             leadingIcon = R.drawable.icon_current_model,
             title = getString(R.string.menu_llm_config),
             onClick = { viewModel.onMenuItemClick(SettingsViewModel.MenuAction.LLM_CONFIG) },
-            showDivider = false
+            showDivider = true
         )
         menuItems[SettingsViewModel.MenuAction.LLM_CONFIG.name]?.setLeadingIconColor(getColor(R.color.colorTextPrimary))
+
+        menuItems[SettingsViewModel.MenuAction.CHAT_TEST.name] = modelGroup.addMenuItem(
+            leadingIcon = R.drawable.ic_chat_test,
+            title = getString(R.string.chat_title),
+            onClick = { viewModel.onMenuItemClick(SettingsViewModel.MenuAction.CHAT_TEST) },
+            showDivider = false
+        )
     }
 
     private fun observeViewModel() {
@@ -230,6 +239,13 @@ class SettingsActivity : BaseActivity() {
                             }
                             SettingsViewModel.MenuAction.LLM_CONFIG -> {
                                 llmConfigLauncher.launch(Intent(this@SettingsActivity, LlmConfigActivity::class.java))
+                            }
+                            SettingsViewModel.MenuAction.CHAT_TEST -> {
+                                if (KVUtils.hasLlmConfig()) {
+                                    startActivity(Intent(this@SettingsActivity, ChatActivity::class.java))
+                                } else {
+                                    Toast.makeText(this@SettingsActivity, R.string.chat_llm_not_configured, Toast.LENGTH_SHORT).show()
+                                }
                             }
                             null -> {}
                             else -> {}

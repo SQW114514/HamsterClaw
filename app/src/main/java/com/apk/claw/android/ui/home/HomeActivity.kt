@@ -24,7 +24,6 @@ import com.apk.claw.android.utils.KVUtils
 import com.apk.claw.android.widget.CommonToolbar
 import com.apk.claw.android.widget.PermissionCardView
 import com.apk.claw.android.widget.KButton
-import com.apk.claw.android.ui.chat.ChatActivity
 import androidx.core.net.toUri
 
 /**
@@ -141,14 +140,6 @@ class HomeActivity : BaseActivity() {
         cardBattery.setOnClickListener { requestBatteryPermission() }
         cardStorage.setOnClickListener { requestStoragePermission() }
 
-        // 测试对话
-        findViewById<KButton>(R.id.btnTestChat).setOnClickListener {
-            if (KVUtils.hasLlmConfig()) {
-                startActivity(Intent(this, ChatActivity::class.java))
-            } else {
-                Toast.makeText(this, R.string.chat_llm_not_configured, Toast.LENGTH_SHORT).show()
-            }
-        }
     }
 
     private fun updateAllPermissionStatus() {

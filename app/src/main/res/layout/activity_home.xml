@@ -14,23 +14,11 @@
         android:layout_height="56pt"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <!-- 测试对话 - 固定在底部 -->
-    <com.apk.claw.android.widget.KButton
-        android:id="@+id/btnTestChat"
-        android:layout_width="match_parent"
-        android:layout_height="48pt"
-        android:layout_marginBottom="24pt"
-        android:text="@string/home_test_chat"
-        android:textSize="16sp"
-        app:btnBackground="@color/colorBrandPrimary"
-        app:btnTextColor="@color/colorBrandOnPrimary"
-        app:layout_constraintBottom_toBottomOf="parent" />
-
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:clipToPadding="false"
-        app:layout_constraintBottom_toTopOf="@id/btnTestChat"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintTop_toBottomOf="@id/toolbar">
 
         <LinearLayout

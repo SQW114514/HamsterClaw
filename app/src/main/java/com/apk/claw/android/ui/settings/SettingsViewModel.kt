@@ -303,6 +303,7 @@ class SettingsViewModel : ViewModel() {
     enum class MenuAction {
         DINGDING, FEISHU, QQ, DISCORD, TELEGRAM, WECHAT,
         LAN_CONFIG,
-        LLM_CONFIG
+        LLM_CONFIG,
+        CHAT_TEST
     }
 }
