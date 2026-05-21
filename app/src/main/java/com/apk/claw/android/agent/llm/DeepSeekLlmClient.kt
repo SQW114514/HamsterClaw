@@ -19,13 +19,16 @@ import dev.langchain4j.model.chat.request.json.JsonStringSchema
 import dev.langchain4j.model.chat.request.json.JsonIntegerSchema
 import dev.langchain4j.model.chat.request.json.JsonNumberSchema
 import dev.langchain4j.model.chat.request.json.JsonBooleanSchema
-import okhttp3.MediaType
+import okhttp3.Call
+import okhttp3.Callback
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import okhttp3.RequestBody
-import okhttp3.sse.EventSource
-import okhttp3.sse.EventSourceListener
-import okhttp3.sse.EventSources
+import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.ResponseBody.Companion.toResponseBody
+import okhttp3.Response
+import java.io.BufferedReader
+import java.io.InputStreamReader
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
@@ -35,7 +38,7 @@ class DeepSeekLlmClient(
 ) : LlmClient {
 
     private val gson = Gson()
-    private val JSON_MEDIA_TYPE = MediaType.get("application/json; charset=utf-8")
+    private val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
 
     private val reasoningCache = mutableMapOf<String, String>()
 
@@ -49,9 +52,7 @@ class DeepSeekLlmClient(
             val response = chain.proceed(request)
             val body = response.body?.string() ?: ""
             XLog.d("DeepSeek", "<-- ${response.code} (${body.length} chars)")
-            response.newBuilder().body(okhttp3.ResponseBody.create(
-                body, response.body?.contentType()
-            )).build()
+            response.newBuilder().body(body.toResponseBody(response.body?.contentType())).build()
         }
         .build()
 
@@ -61,7 +62,7 @@ class DeepSeekLlmClient(
             .url(config.baseUrl.trimEnd('/') + "/chat/completions")
             .addHeader("Authorization", "Bearer ${config.apiKey}")
             .addHeader("Content-Type", "application/json")
-            .post(RequestBody.create(requestJson, JSON_MEDIA_TYPE))
+            .post(requestJson.toRequestBody(JSON_MEDIA_TYPE))
             .build()
 
         val response = okHttpClient.newCall(httpRequest).execute()
@@ -84,7 +85,7 @@ class DeepSeekLlmClient(
             .addHeader("Authorization", "Bearer ${config.apiKey}")
             .addHeader("Content-Type", "application/json")
             .addHeader("Accept", "text/event-stream")
-            .post(RequestBody.create(requestJson, JSON_MEDIA_TYPE))
+            .post(requestJson.toRequestBody(JSON_MEDIA_TYPE))
             .build()
 
         val latch = CountDownLatch(1)
@@ -96,65 +97,80 @@ class DeepSeekLlmClient(
         val toolCalls = mutableListOf<ToolExecutionRequest>()
         var currentToolName: String? = null
         var currentToolArgs = StringBuilder()
+        val dataBuilder = StringBuilder()
 
-        val factory = EventSources.createFactory(okHttpClient)
-        factory.newEventSource(httpRequest, object : EventSourceListener() {
-            override fun onEvent(eventSource: EventSource, id: String?, type: String?, data: String) {
-                if (data == "[DONE]") return
+        okHttpClient.newCall(httpRequest).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: java.io.IOException) {
+                errorRef.set(e)
+                listener.onError(e)
+                latch.countDown()
+            }
+
+            override fun onResponse(call: Call, response: Response) {
                 try {
-                    val json = JsonParser.parseString(data).asJsonObject
-                    if (!json.has("choices")) return
-                    val choice = json.getAsJsonArray("choices")[0].asJsonObject
-                    val delta = choice.getAsJsonObject("delta")
+                    val body = response.body ?: throw RuntimeException("Empty response body")
+                    val reader = BufferedReader(InputStreamReader(body.byteStream()))
+                    var line: String?
+                    while (reader.readLine().also { line = it } != null) {
+                        val l = line!!
+                        if (l.startsWith("data: ")) {
+                            val data = l.removePrefix("data: ").trim()
+                            if (data == "[DONE]") continue
+                            if (data.isEmpty()) continue
+                            try {
+                                val json = JsonParser.parseString(data).asJsonObject
+                                if (!json.has("choices")) continue
+                                val choice = json.getAsJsonArray("choices")[0].asJsonObject
+                                val delta = choice.getAsJsonObject("delta")
 
-                    if (delta.has("reasoning_content") && !delta.get("reasoning_content").isJsonNull) {
-                        reasoningBuilder.append(delta.get("reasoning_content").asString)
-                    }
-                    if (delta.has("content") && !delta.get("content").isJsonNull) {
-                        val content = delta.get("content").asString
-                        textBuilder.append(content)
-                        listener.onPartialText(content)
-                    }
-                    if (delta.has("tool_calls") && !delta.get("tool_calls").isJsonNull) {
-                        for (tc in delta.getAsJsonArray("tool_calls")) {
-                            val tcObj = tc.asJsonObject
-                            val func = tcObj.getAsJsonObject("function")
-                            if (func.has("name") && !func.get("name").isJsonNull) {
-                                currentToolName = func.get("name").asString
-                                currentToolArgs = StringBuilder()
-                            }
-                            if (func.has("arguments") && !func.get("arguments").isJsonNull) {
-                                currentToolArgs.append(func.get("arguments").asString)
+                                if (delta.has("reasoning_content") && !delta.get("reasoning_content").isJsonNull) {
+                                    reasoningBuilder.append(delta.get("reasoning_content").asString)
+                                }
+                                if (delta.has("content") && !delta.get("content").isJsonNull) {
+                                    val content = delta.get("content").asString
+                                    textBuilder.append(content)
+                                    listener.onPartialText(content)
+                                }
+                                if (delta.has("tool_calls") && !delta.get("tool_calls").isJsonNull) {
+                                    for (tc in delta.getAsJsonArray("tool_calls")) {
+                                        val tcObj = tc.asJsonObject
+                                        val func = tcObj.getAsJsonObject("function")
+                                        if (func.has("name") && !func.get("name").isJsonNull) {
+                                            currentToolName = func.get("name").asString
+                                            currentToolArgs = StringBuilder()
+                                        }
+                                        if (func.has("arguments") && !func.get("arguments").isJsonNull) {
+                                            currentToolArgs.append(func.get("arguments").asString)
+                                        }
+                                    }
+                                }
+                                if (choice.has("finish_reason") && !choice.get("finish_reason").isJsonNull
+                                    && choice.get("finish_reason").asString == "tool_calls" && currentToolName != null) {
+                                    toolCalls.add(ToolExecutionRequest.builder()
+                                        .id("call_${toolCalls.size}")
+                                        .name(currentToolName!!)
+                                        .arguments(currentToolArgs.toString())
+                                        .build())
+                                }
+                            } catch (e: Exception) {
+                                XLog.w("DeepSeek", "SSE parse error: ${e.message}")
                             }
                         }
                     }
-                    if (choice.has("finish_reason") && !choice.get("finish_reason").isJsonNull
-                        && choice.get("finish_reason").asString == "tool_calls" && currentToolName != null) {
-                        toolCalls.add(ToolExecutionRequest.builder()
-                            .id("call_${toolCalls.size}")
-                            .name(currentToolName!!)
-                            .arguments(currentToolArgs.toString())
-                            .build())
+                    val fullText = textBuilder.toString()
+                    reasoningBuilder.toString().let { rc ->
+                        if (rc.isNotEmpty() && fullText.isNotEmpty()) reasoningCache[fullText] = rc
                     }
+                    val llmResponse = LlmResponse(fullText.ifEmpty { null }, toolCalls, null)
+                    resultRef.set(llmResponse)
+                    listener.onComplete(llmResponse)
                 } catch (e: Exception) {
-                    XLog.w("DeepSeek", "SSE parse error: ${e.message}")
+                    errorRef.set(e)
+                    listener.onError(e)
+                } finally {
+                    response.close()
+                    latch.countDown()
                 }
-            }
-
-            override fun onClosed(eventSource: EventSource) {
-                val fullText = textBuilder.toString()
-                reasoningBuilder.toString().let { rc ->
-                    if (rc.isNotEmpty() && fullText.isNotEmpty()) reasoningCache[fullText] = rc
-                }
-                resultRef.set(LlmResponse(fullText.ifEmpty { null }, toolCalls, null))
-                listener.onComplete(resultRef.get())
-                latch.countDown()
-            }
-
-            override fun onFailure(eventSource: EventSource, t: Throwable?, response: okhttp3.Response?) {
-                errorRef.set(t ?: RuntimeException("Stream failed: ${response?.code}"))
-                listener.onError(errorRef.get())
-                latch.countDown()
             }
         })
 
