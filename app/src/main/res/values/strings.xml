@@ -119,6 +119,13 @@
     <string name="llm_config_saved">LLM configuration saved</string>
     <string name="llm_config_api_key_required">Please enter API Key</string>
     <string name="menu_llm_config">LLM Config</string>
+    <string name="llm_config_provider">Provider</string>
+    <string name="llm_config_provider_openai">OpenAI</string>
+    <string name="llm_config_provider_anthropic">Anthropic</string>
+    <string name="llm_config_provider_opencode_go">OpenCode Go</string>
+    <string name="llm_config_provider_deepseek">DeepSeek</string>
+    <string name="llm_config_thinking_mode">Thinking Mode</string>
+    <string name="llm_config_thinking_mode_hint">Enable DeepSeek reasoning_content (thinking mode)</string>
 
     <!-- Settings Menu -->
     <string name="menu_dingtalk">DingTalk</string>
