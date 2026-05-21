@@ -25,8 +25,8 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
-import okhttp3.ResponseBody.Companion.toResponseBody
 import okhttp3.Response
+import okhttp3.ResponseBody.Companion.toResponseBody
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.util.concurrent.CountDownLatch
@@ -36,16 +36,6 @@ import java.util.concurrent.atomic.AtomicReference
 class DeepSeekLlmClient(
     private val config: AgentConfig
 ) : LlmClient {
-
-    companion object {
-        @JvmStatic
-        private val reasoningCache = mutableMapOf<Int, String>()
-        @JvmStatic
-        fun registerReasoning(aiMessage: AiMessage, reasoningContent: String) {
-            reasoningCache[System.identityHashCode(aiMessage)] = reasoningContent
-            XLog.d("DeepSeek", "Registered reasoning: hash=${System.identityHashCode(aiMessage)} rc=${reasoningContent.take(40)}")
-        }
-    }
 
     private val gson = Gson()
     private val JSON = "application/json; charset=utf-8".toMediaType()
@@ -65,35 +55,34 @@ class DeepSeekLlmClient(
         .build()
 
     override fun chat(messages: List<ChatMessage>, toolSpecs: List<ToolSpecification>): LlmResponse {
-        val body = buildJson(messages, toolSpecs, streaming = false)
+        val json = buildJson(messages, toolSpecs, streaming = false)
         val req = Request.Builder()
             .url(config.baseUrl.trimEnd('/') + "/chat/completions")
             .header("Authorization", "Bearer ${config.apiKey}")
             .header("Content-Type", "application/json")
-            .post(body.toRequestBody(JSON))
+            .post(json.toRequestBody(JSON))
             .build()
-
         val resp = client.newCall(req).execute()
-        val respBody = resp.body?.string() ?: ""
-        if (!resp.isSuccessful) throw RuntimeException("API error ${resp.code}: $respBody")
-        return parse(respBody)
+        val body = resp.body?.string() ?: ""
+        if (!resp.isSuccessful) throw RuntimeException("API error ${resp.code}: $body")
+        return parse(body)
     }
 
     override fun chatStreaming(
         messages: List<ChatMessage>, toolSpecs: List<ToolSpecification>, listener: StreamingListener
     ): LlmResponse {
-        val body = buildJson(messages, toolSpecs, streaming = true)
+        val json = buildJson(messages, toolSpecs, streaming = true)
         val req = Request.Builder()
             .url(config.baseUrl.trimEnd('/') + "/chat/completions")
             .header("Authorization", "Bearer ${config.apiKey}")
             .header("Content-Type", "application/json")
             .header("Accept", "text/event-stream")
-            .post(body.toRequestBody(JSON))
+            .post(json.toRequestBody(JSON))
             .build()
 
         val latch = CountDownLatch(1)
-        val resultRef = AtomicReference<LlmResponse>()
-        val errorRef = AtomicReference<Throwable>()
+        val result = AtomicReference<LlmResponse>()
+        val err = AtomicReference<Throwable>()
         val text = StringBuilder()
         val reasoning = StringBuilder()
         val toolCalls = mutableListOf<ToolExecutionRequest>()
@@ -102,14 +91,14 @@ class DeepSeekLlmClient(
 
         client.newCall(req).enqueue(object : Callback {
             override fun onFailure(call: Call, e: java.io.IOException) {
-                errorRef.set(e); listener.onError(e); latch.countDown()
+                err.set(e); listener.onError(e); latch.countDown()
             }
-            override fun onResponse(call: Call, resp: Response) {
+            override fun onResponse(call: Call, response: Response) {
                 try {
-                    val reader = BufferedReader(InputStreamReader(resp.body?.byteStream() ?: return))
+                    val reader = BufferedReader(InputStreamReader(response.body?.byteStream() ?: return))
                     var line: String?
                     while (reader.readLine().also { line = it } != null) {
-                        val l = line!!
+                        val l = line!!.trim()
                         if (!l.startsWith("data: ")) continue
                         val d = l.removePrefix("data: ").trim()
                         if (d == "[DONE]" || d.isEmpty()) continue
@@ -118,8 +107,6 @@ class DeepSeekLlmClient(
                             if (!j.has("choices")) continue
                             val c = j.getAsJsonArray("choices")[0].asJsonObject
                             val delta = c.getAsJsonObject("delta")
-                            if (delta.has("reasoning_content") && !delta.get("reasoning_content").isJsonNull)
-                                reasoning.append(delta.get("reasoning_content").asString)
                             if (delta.has("content") && !delta.get("content").isJsonNull) {
                                 val t = delta.get("content").asString; text.append(t); listener.onPartialText(t)
                             }
@@ -136,22 +123,18 @@ class DeepSeekLlmClient(
                             }
                         } catch (_: Exception) {}
                     }
-                    val llmResp = LlmResponse(text.toString().ifEmpty { null }, toolCalls, null,
-                        reasoningContent = reasoning.toString().ifEmpty { null })
-                    resultRef.set(llmResp); listener.onComplete(llmResp)
-                } catch (e: Exception) { errorRef.set(e); listener.onError(e) }
-                finally { resp.close(); latch.countDown() }
+                    val resp2 = LlmResponse(text.toString().ifEmpty { null }, toolCalls, null)
+                    result.set(resp2); listener.onComplete(resp2)
+                } catch (e: Exception) { err.set(e); listener.onError(e) }
+                finally { response.close(); latch.countDown() }
             }
         })
-        latch.await(); errorRef.get()?.let { throw it }; return resultRef.get()
+        latch.await(); err.get()?.let { throw it }; return result.get()
     }
 
     private fun buildJson(messages: List<ChatMessage>, toolSpecs: List<ToolSpecification>, streaming: Boolean): String {
         val root = JsonObject()
         root.addProperty("model", config.modelName.ifEmpty { "deepseek-v4-flash" })
-        if (config.thinkingMode) {
-            root.add("thinking", JsonObject().apply { addProperty("type", "enabled") })
-        }
         root.addProperty("stream", streaming)
         root.addProperty("temperature", config.temperature)
         val arr = JsonArray()
@@ -162,9 +145,7 @@ class DeepSeekLlmClient(
             for (s in toolSpecs) tArr.add(convertTools(s))
             root.add("tools", tArr)
         }
-        val json = gson.toJson(root)
-        XLog.d("DeepSeek", "Request: ${json.take(800)}")
-        return json
+        return gson.toJson(root)
     }
 
     private fun convert(m: ChatMessage): JsonObject = JsonObject().apply {
@@ -174,7 +155,6 @@ class DeepSeekLlmClient(
             is AiMessage -> {
                 addProperty("role", "assistant")
                 m.text()?.let { addProperty("content", it) }
-                reasoningCache[System.identityHashCode(m)]?.let { addProperty("reasoning_content", it) }
                 m.toolExecutionRequests()?.let { tcs ->
                     val arr = JsonArray()
                     for ((i, tc) in tcs.withIndex()) arr.add(JsonObject().apply {
@@ -222,13 +202,12 @@ class DeepSeekLlmClient(
         if (choices.size() == 0) return LlmResponse(null, emptyList(), usage)
         val msg = choices[0].asJsonObject.getAsJsonObject("message")
         val text = if (msg.has("content") && !msg.get("content").isJsonNull) msg.get("content").asString else null
-        val rc = if (msg.has("reasoning_content") && !msg.get("reasoning_content").isJsonNull) msg.get("reasoning_content").asString else null
         val tools = if (msg.has("tool_calls") && !msg.get("tool_calls").isJsonNull) {
             msg.getAsJsonArray("tool_calls").map { tc ->
                 val f = tc.asJsonObject.getAsJsonObject("function")
                 ToolExecutionRequest.builder().id(tc.asJsonObject.get("id").asString).name(f.get("name").asString).arguments(f.get("arguments").asString).build()
             }
         } else emptyList()
-        return LlmResponse(text ?: rc, tools, usage, rc)
+        return LlmResponse(text, tools, usage)
     }
 }
