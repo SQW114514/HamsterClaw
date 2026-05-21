@@ -294,7 +294,10 @@ class DeepSeekLlmClient(
         val reasoningContent = if (message.has("reasoning_content") && !message.get("reasoning_content").isJsonNull)
             message.get("reasoning_content").asString else null
 
-        if (reasoningContent != null && text != null) reasoningCache[text] = reasoningContent
+        if (reasoningContent != null) {
+            val cacheKey = text ?: reasoningContent
+            reasoningCache[cacheKey] = reasoningContent
+        }
 
         val toolExecutionRequests = if (message.has("tool_calls") && !message.get("tool_calls").isJsonNull) {
             message.getAsJsonArray("tool_calls").map { tc ->
