@@ -55,6 +55,7 @@ app/src/main/java/com/apk/claw/android/
 ├── tool/                     # 工具抽象层 & 注册表
 │   └── impl/                 # 工具实现（common/phone/TV）
 ├── ui/                       # Activity（启动、主页、引导、设置）
+│   └── chat/                 # 内嵌对话测试（ChatActivity, ChatCallback, ChatMessageAdapter）
 ├── utils/                    # KVUtils, XLog 等工具
 └── widget/                   # 自定义 UI 组件
 ```
@@ -120,6 +121,33 @@ app/src/main/java/com/apk/claw/android/
 
 `ChannelManager` 统一管理。渠道通过 Stream Client / WebSocket / Bot API 接收消息，通过 `TaskOrchestrator` 分发任务。
 
+### 内嵌对话测试（Inline Chat Test）
+
+主页工具栏下方有 **「测试对话」** 按钮，可直接与 Agent 对话，无需配置任何外部消息渠道。
+
+**实现文件：**
+| 文件 | 说明 |
+|------|------|
+| `ui/chat/ChatActivity.kt` | 全屏聊天 Activity |
+| `ui/chat/ChatMessage.kt` | 消息数据模型（role, content, timestamp, isStreaming） |
+| `ui/chat/ChatCallback.kt` | 实现 AgentCallback，将 Agent 响应转为 UI 消息 |
+| `ui/chat/ChatMessageAdapter.kt` | RecyclerView 适配器（用户/AI/工具日志三种气泡） |
+| `res/layout/activity_chat.xml` | 聊天界面布局（RecyclerView + 底部输入栏） |
+| `res/layout/item_chat_*.xml` | 三种气泡布局 |
+| `res/drawable/bg_chat_*.xml` | 气泡形状背景 |
+
+**交互流程：**
+1. 用户输入文字 → 调用 `ChatActivity.sendMessage()`
+2. 创建 `AgentService` + `ChatCallback` → 调用 `executeTask()`
+3. `ChatCallback.onContent()` → 流式逐字追加 AI 气泡
+4. `ChatCallback.onToolCall/ToolResult()` → 灰色小字工具日志
+5. `ChatCallback.onComplete()` → 标记完成，恢复输入
+
+**注意点：**
+- 每次发送消息创建新的 AgentService 实例，不共享缓存
+- `ChatCallback` 使用 `Handler(Looper.getMainLooper())` 确保 UI 更新在主线程
+- DeepSeek thinking 模式在本界面也可正常使用
+
 ## 常见开发任务
 
 ### 修改 LLM 配置页面
@@ -136,6 +164,14 @@ app/src/main/java/com/apk/claw/android/
 2. 在 `LlmProvider` enum 添加对应值
 3. 在 `LlmClientFactory` 添加 when 分支
 4. 在 `AgentConfig.defaultBaseUrl()` 添加对应 URL
+
+### 修改/新增内嵌对话
+
+- UI 布局：`res/layout/activity_chat.xml` + `res/layout/item_chat_*.xml`
+- 核心逻辑：`ui/chat/ChatActivity.kt` + `ChatCallback.kt`
+- 适配器：`ui/chat/ChatMessageAdapter.kt`
+- 入口按钮：主页 `activity_home.xml` 中 `btnTestChat2`
+- 入口处理：`HomeActivity.kt` → `initViews()`
 
 ### 发布 Release
 
