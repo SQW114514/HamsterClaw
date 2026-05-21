@@ -127,6 +127,14 @@
     <string name="llm_config_thinking_mode">Thinking Mode</string>
     <string name="llm_config_thinking_mode_hint">Enable DeepSeek reasoning_content (thinking mode)</string>
 
+    <!-- Inline Chat Test -->
+    <string name="home_test_chat">Test Chat</string>
+    <string name="chat_title">API Test</string>
+    <string name="chat_input_hint">Type a message to test the AI...</string>
+    <string name="chat_send">Send</string>
+    <string name="chat_llm_not_configured">Please configure LLM first in Settings</string>
+    <string name="chat_task_running">Waiting for current task to finish...</string>
+
     <!-- Settings Menu -->
     <string name="menu_dingtalk">DingTalk</string>
     <string name="menu_feishu">Feishu</string>

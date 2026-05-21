@@ -127,6 +127,14 @@
     <string name="llm_config_thinking_mode">思考模式</string>
     <string name="llm_config_thinking_mode_hint">开启 DeepSeek 的 reasoning_content 思考链</string>
 
+    <!-- 内嵌对话测试 -->
+    <string name="home_test_chat">测试对话</string>
+    <string name="chat_title">API 测试</string>
+    <string name="chat_input_hint">输入消息测试 AI...</string>
+    <string name="chat_send">发送</string>
+    <string name="chat_llm_not_configured">请先在设置中配置 LLM</string>
+    <string name="chat_task_running">请等待当前任务完成...</string>
+
     <!-- 设置菜单项 -->
     <string name="menu_dingtalk">钉钉</string>
     <string name="menu_feishu">飞书</string>
