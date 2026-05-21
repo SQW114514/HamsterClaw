@@ -149,6 +149,15 @@ input:focus {
     <div class="card llm">
       <div class="card-title"><span class="dot"></span><span data-i18n="llm_title"></span></div>
       <div class="field">
+        <label data-i18n="llm_provider"></label>
+        <select id="llmProvider" style="width:100%;padding:12px 14px;border:1.5px solid #e5e5ea;border-radius:10px;font-size:15px;outline:none;background:#fafafa;">
+          <option value="OPENAI">OpenAI</option>
+          <option value="ANTHROPIC">Anthropic</option>
+          <option value="OPENGODE_GO">OpenCode Go</option>
+          <option value="DEEPSEEK">DeepSeek</option>
+        </select>
+      </div>
+      <div class="field">
         <label data-i18n="llm_api_key"></label>
         <div class="input-wrap">
           <input type="password" id="llmApiKey" data-i18n-placeholder="ph_llm_api_key" autocomplete="off">
@@ -162,6 +171,13 @@ input:focus {
       <div class="field">
         <label data-i18n="llm_model_name"></label>
         <input type="text" id="llmModelName" data-i18n-placeholder="ph_llm_model" autocomplete="off">
+      </div>
+      <div class="field" id="thinkingModeField" style="display:none">
+        <label style="display:flex;align-items:center;justify-content:space-between">
+          <span data-i18n="llm_thinking_mode"></span>
+          <input type="checkbox" id="llmThinkingMode" style="width:18px;height:18px;">
+        </label>
+        <p style="font-size:12px;color:#86868b;margin-top:4px;" data-i18n="llm_thinking_tip"></p>
       </div>
       <p style="font-size:12px;color:#86868b;margin-top:8px;" data-i18n="llm_tip"></p>
     </div>
@@ -255,6 +271,9 @@ const i18nMessages = {
     ph_llm_api_key: '如 sk-xxx（留空表示不修改）',
     ph_llm_base_url: '如 https://api.openai.com/v1（留空使用默认）',
     ph_llm_model: '如 gpt-4o、gpt-4o-mini',
+    llm_provider: '提供商',
+    llm_thinking_mode: '思考模式',
+    llm_thinking_tip: '开启 DeepSeek 的 reasoning_content（思考链）',
     llm_tip: 'API Key 仅保存在设备本地，可通过设置 → LLM 配置 在应用内修改',
     load_failed: '加载失败，请检查连接',
     dingtalk: '钉钉',
@@ -287,6 +306,9 @@ const i18nMessages = {
     ph_llm_api_key: 'e.g. sk-xxx (leave empty to keep current)',
     ph_llm_base_url: 'e.g. https://api.openai.com/v1 (empty = default)',
     ph_llm_model: 'e.g. gpt-4o, gpt-4o-mini',
+    llm_provider: 'Provider',
+    llm_thinking_mode: 'Thinking Mode',
+    llm_thinking_tip: 'Enable DeepSeek reasoning_content (thinking chain)',
     llm_tip: 'API Key is stored locally only. You can also edit in Settings → LLM Config',
     load_failed: 'Failed to load, please check connection',
     dingtalk: 'DingTalk',
@@ -319,6 +341,9 @@ const i18nMessages = {
     ph_llm_api_key: '例: sk-xxx（空欄で現状維持）',
     ph_llm_base_url: '例: https://api.openai.com/v1（空欄でデフォルト）',
     ph_llm_model: '例: gpt-4o、gpt-4o-mini',
+    llm_provider: 'プロバイダー',
+    llm_thinking_mode: '思考モード',
+    llm_thinking_tip: 'DeepSeek reasoning_content（思考チェーン）を有効にする',
     llm_tip: 'API Key は端末内にのみ保存されます。設定 → LLM 設定 からも変更可能',
     load_failed: '読み込みに失敗しました。接続を確認してください',
     dingtalk: 'DingTalk',
@@ -387,7 +412,18 @@ function togglePassword(inputId, btn) {
 
 // ====== API ======
 const fields = ['dingtalkAppKey', 'dingtalkAppSecret', 'feishuAppId', 'feishuAppSecret', 'qqAppId', 'qqAppSecret', 'discordBotToken', 'telegramBotToken'];
-const llmFields = ['llmApiKey', 'llmBaseUrl', 'llmModelName'];
+const llmFields = ['llmApiKey', 'llmBaseUrl', 'llmModelName', 'llmProvider', 'llmThinkingMode'];
+
+function toggleThinkingMode() {
+  const providerEl = document.getElementById('llmProvider');
+  const thinkingField = document.getElementById('thinkingModeField');
+  if (providerEl && thinkingField) {
+    thinkingField.style.display = (providerEl.value === 'DEEPSEEK' || providerEl.value === 'OPENGODE_GO') ? 'block' : 'none';
+  }
+}
+document.addEventListener('change', function(e) {
+  if (e.target && e.target.id === 'llmProvider') toggleThinkingMode();
+});
 
 async function load() {
   try {
@@ -401,10 +437,21 @@ async function load() {
       });
     }
     if (llmJson.code === 0 && llmJson.data) {
+      // Set provider first, then toggle visibility
+      const providerEl = document.getElementById('llmProvider');
+      if (providerEl && llmJson.data.llmProvider) {
+        providerEl.value = llmJson.data.llmProvider;
+      }
       llmFields.forEach(f => {
-        const el = document.getElementById(f);
-        if (el && llmJson.data[f] !== undefined) el.value = llmJson.data[f] || '';
+        if (f === 'llmThinkingMode') {
+          const el = document.getElementById(f);
+          if (el && llmJson.data[f] !== undefined) el.checked = llmJson.data[f] === true;
+        } else {
+          const el = document.getElementById(f);
+          if (el && llmJson.data[f] !== undefined) el.value = llmJson.data[f] || '';
+        }
       });
+      toggleThinkingMode();
     }
     document.getElementById('loading').style.display = 'none';
     document.getElementById('content').style.display = 'block';
@@ -425,8 +472,13 @@ async function save() {
     });
     const llmBody = {};
     llmFields.forEach(f => {
-      const el = document.getElementById(f);
-      if (el) llmBody[f] = el.value.trim();
+      if (f === 'llmThinkingMode') {
+        const el = document.getElementById(f);
+        if (el) llmBody[f] = el.checked;
+      } else {
+        const el = document.getElementById(f);
+        if (el) llmBody[f] = el.value.trim();
+      }
     });
     const [chanRes, llmRes] = await Promise.all([
       fetch('/api/channels', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(chanBody) }),
