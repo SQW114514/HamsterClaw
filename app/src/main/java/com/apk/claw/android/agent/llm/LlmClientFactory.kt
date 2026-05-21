@@ -16,6 +16,8 @@ object LlmClientFactory {
         return when (config.provider) {
             LlmProvider.OPENAI -> OpenAiLlmClient(config, httpClientBuilder)
             LlmProvider.ANTHROPIC -> AnthropicLlmClient(config, httpClientBuilder)
+            LlmProvider.OPENGODE_GO -> DeepSeekLlmClient(config)
+            LlmProvider.DEEPSEEK -> DeepSeekLlmClient(config)
         }
     }
 }
