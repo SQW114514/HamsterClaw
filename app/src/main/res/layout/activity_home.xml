@@ -82,4 +82,16 @@
         app:btnTextColor="@color/colorErrorOnPrimary"
         app:layout_constraintTop_toBottomOf="@id/cardStorage" />
 
+    <!-- 测试对话 -->
+    <com.apk.claw.android.widget.KButton
+        android:id="@+id/btnTestChat"
+        android:layout_width="match_parent"
+        android:layout_height="48pt"
+        android:layout_marginTop="12pt"
+        android:text="@string/home_test_chat"
+        android:textSize="16sp"
+        app:btnBackground="@color/colorBrandPrimary"
+        app:btnTextColor="@color/colorBrandOnPrimary"
+        app:layout_constraintTop_toBottomOf="@id/btnCancelTask" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>
