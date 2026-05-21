@@ -24,6 +24,7 @@ import com.apk.claw.android.utils.KVUtils
 import com.apk.claw.android.widget.CommonToolbar
 import com.apk.claw.android.widget.PermissionCardView
 import com.apk.claw.android.widget.KButton
+import com.apk.claw.android.ui.chat.ChatActivity
 import androidx.core.net.toUri
 
 /**
@@ -131,6 +132,15 @@ class HomeActivity : BaseActivity() {
                 Toast.makeText(this, R.string.home_no_task_running, Toast.LENGTH_SHORT).show()
             }
             updateCancelTaskVisibility()
+        }
+
+        // 测试对话（顶部按钮）
+        findViewById<android.widget.Button>(R.id.btnTestChat2).setOnClickListener {
+            if (KVUtils.hasLlmConfig()) {
+                startActivity(Intent(this, ChatActivity::class.java))
+            } else {
+                Toast.makeText(this, R.string.chat_llm_not_configured, Toast.LENGTH_SHORT).show()
+            }
         }
 
         // 点击卡片申请权限
