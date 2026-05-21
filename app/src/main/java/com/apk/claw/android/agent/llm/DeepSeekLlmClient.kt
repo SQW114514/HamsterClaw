@@ -40,7 +40,14 @@ class DeepSeekLlmClient(
     private val gson = Gson()
     private val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
 
-    private val reasoningCache = mutableMapOf<String, String>()
+    companion object {
+        @JvmStatic
+        private val reasoningCache = mutableMapOf<Int, String>()
+        @JvmStatic
+        fun registerReasoning(aiMessage: AiMessage, reasoningContent: String) {
+            reasoningCache[System.identityHashCode(aiMessage)] = reasoningContent
+        }
+    }
 
     private val okHttpClient = OkHttpClient.Builder()
         .connectTimeout(60, TimeUnit.SECONDS)
@@ -158,10 +165,9 @@ class DeepSeekLlmClient(
                         }
                     }
                     val fullText = textBuilder.toString()
-                    reasoningBuilder.toString().let { rc ->
-                        if (rc.isNotEmpty() && fullText.isNotEmpty()) reasoningCache[fullText] = rc
-                    }
-                    val llmResponse = LlmResponse(fullText.ifEmpty { null }, toolCalls, null)
+                    val reasoningText = reasoningBuilder.toString()
+                    val llmResponse = LlmResponse(fullText.ifEmpty { null }, toolCalls, null,
+                        reasoningContent = reasoningText.ifEmpty { null })
                     resultRef.set(llmResponse)
                     listener.onComplete(llmResponse)
                 } catch (e: Exception) {
@@ -218,7 +224,10 @@ class DeepSeekLlmClient(
                 addProperty("role", "assistant")
                 message.text()?.let { text ->
                     addProperty("content", text)
-                    reasoningCache[text]?.let { addProperty("reasoning_content", it) }
+                }
+                reasoningCache[System.identityHashCode(message)]?.let { rc ->
+                    XLog.d("DeepSeek", "Injected reasoning_content via identity cache")
+                    addProperty("reasoning_content", rc)
                 }
                 message.toolExecutionRequests()?.let { tcs ->
                     val arr = JsonArray()
@@ -294,11 +303,6 @@ class DeepSeekLlmClient(
         val reasoningContent = if (message.has("reasoning_content") && !message.get("reasoning_content").isJsonNull)
             message.get("reasoning_content").asString else null
 
-        if (reasoningContent != null) {
-            val cacheKey = text ?: reasoningContent
-            reasoningCache[cacheKey] = reasoningContent
-        }
-
         val toolExecutionRequests = if (message.has("tool_calls") && !message.get("tool_calls").isJsonNull) {
             message.getAsJsonArray("tool_calls").map { tc ->
                 val func = tc.asJsonObject.getAsJsonObject("function")
@@ -310,6 +314,6 @@ class DeepSeekLlmClient(
             }
         } else emptyList()
 
-        return LlmResponse(text ?: reasoningContent, toolExecutionRequests, tokenUsage)
+        return LlmResponse(text ?: reasoningContent, toolExecutionRequests, tokenUsage, reasoningContent)
     }
 }

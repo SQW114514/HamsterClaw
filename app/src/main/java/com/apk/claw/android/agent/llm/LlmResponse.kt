@@ -6,7 +6,8 @@ import dev.langchain4j.model.output.TokenUsage
 data class LlmResponse(
     val text: String?,
     val toolExecutionRequests: List<ToolExecutionRequest>,
-    val tokenUsage: TokenUsage? = null
+    val tokenUsage: TokenUsage? = null,
+    val reasoningContent: String? = null
 ) {
     fun hasToolExecutionRequests(): Boolean = toolExecutionRequests.isNotEmpty()
 }

@@ -6,6 +6,7 @@ import android.view.WindowManager
 import com.apk.claw.android.ClawApplication
 import com.apk.claw.android.R
 import com.apk.claw.android.agent.langchain.LangChain4jToolBridge
+import com.apk.claw.android.agent.llm.DeepSeekLlmClient
 import com.apk.claw.android.agent.llm.LlmClient
 import com.apk.claw.android.agent.llm.LlmClientFactory
 import com.apk.claw.android.agent.llm.LlmResponse
@@ -359,6 +360,11 @@ class DefaultAgentService : AgentService {
                 }
             } else {
                 AiMessage.from(llmResponse.text ?: "")
+            }
+            // Register reasoning content for DeepSeek thinking mode cache
+            if (llmResponse.reasoningContent != null) {
+                DeepSeekLlmClient.registerReasoning(aiMessage, llmResponse.reasoningContent)
+                XLog.d(TAG, "Registered reasoning for AiMessage: hash=${System.identityHashCode(aiMessage)}")
             }
             messages.add(aiMessage)
 
