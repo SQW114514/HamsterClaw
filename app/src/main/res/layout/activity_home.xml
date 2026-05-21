@@ -14,84 +14,94 @@
         android:layout_height="56pt"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <!-- 无障碍服务 -->
-    <com.apk.claw.android.widget.PermissionCardView
-        android:id="@+id/cardAccessibility"
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16pt"
-        app:cardIcon="@drawable/ic_accessibility"
-        app:cardTitle="@string/home_card_accessibility_title"
-        app:cardSubtitle="@string/home_card_accessibility_subtitle"
-        app:layout_constraintTop_toBottomOf="@id/toolbar" />
+        android:layout_height="0dp"
+        android:clipToPadding="false"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/toolbar">
 
-    <!-- 常驻通知 -->
-    <com.apk.claw.android.widget.PermissionCardView
-        android:id="@+id/cardNotification"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="12pt"
-        app:cardIcon="@drawable/ic_notification"
-        app:cardTitle="@string/home_card_notification_title"
-        app:cardSubtitle="@string/home_card_notification_subtitle"
-        app:layout_constraintTop_toBottomOf="@id/cardAccessibility" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
 
-    <!-- 系统窗口 -->
-    <com.apk.claw.android.widget.PermissionCardView
-        android:id="@+id/cardSystemWindow"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="12pt"
-        app:cardIcon="@drawable/ic_window"
-        app:cardTitle="@string/home_card_system_window_title"
-        app:cardSubtitle="@string/home_card_system_window_subtitle"
-        app:layout_constraintTop_toBottomOf="@id/cardNotification" />
+            <!-- 无障碍服务 -->
+            <com.apk.claw.android.widget.PermissionCardView
+                android:id="@+id/cardAccessibility"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16pt"
+                app:cardIcon="@drawable/ic_accessibility"
+                app:cardTitle="@string/home_card_accessibility_title"
+                app:cardSubtitle="@string/home_card_accessibility_subtitle" />
 
-    <!-- 电池白名单 -->
-    <com.apk.claw.android.widget.PermissionCardView
-        android:id="@+id/cardBattery"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="12pt"
-        app:cardIcon="@drawable/ic_battery"
-        app:cardTitle="@string/home_card_battery_title"
-        app:cardSubtitle="@string/home_card_battery_subtitle"
-        app:layout_constraintTop_toBottomOf="@id/cardSystemWindow" />
+            <!-- 常驻通知 -->
+            <com.apk.claw.android.widget.PermissionCardView
+                android:id="@+id/cardNotification"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12pt"
+                app:cardIcon="@drawable/ic_notification"
+                app:cardTitle="@string/home_card_notification_title"
+                app:cardSubtitle="@string/home_card_notification_subtitle" />
 
-    <!-- 文件读写 -->
-    <com.apk.claw.android.widget.PermissionCardView
-        android:id="@+id/cardStorage"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="12pt"
-        app:cardIcon="@drawable/ic_storage"
-        app:cardTitle="@string/home_card_storage_title"
-        app:cardSubtitle="@string/home_card_storage_subtitle"
-        app:layout_constraintTop_toBottomOf="@id/cardBattery" />
+            <!-- 系统窗口 -->
+            <com.apk.claw.android.widget.PermissionCardView
+                android:id="@+id/cardSystemWindow"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12pt"
+                app:cardIcon="@drawable/ic_window"
+                app:cardTitle="@string/home_card_system_window_title"
+                app:cardSubtitle="@string/home_card_system_window_subtitle" />
 
-    <!-- 结束当前会话 -->
-    <com.apk.claw.android.widget.KButton
-        android:id="@+id/btnCancelTask"
-        android:layout_width="match_parent"
-        android:layout_height="48pt"
-        android:layout_marginTop="24pt"
-        android:text="@string/home_cancel_task"
-        android:textSize="16sp"
-        android:visibility="gone"
-        app:btnBackground="@color/colorErrorPrimary"
-        app:btnTextColor="@color/colorErrorOnPrimary"
-        app:layout_constraintTop_toBottomOf="@id/cardStorage" />
+            <!-- 电池白名单 -->
+            <com.apk.claw.android.widget.PermissionCardView
+                android:id="@+id/cardBattery"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12pt"
+                app:cardIcon="@drawable/ic_battery"
+                app:cardTitle="@string/home_card_battery_title"
+                app:cardSubtitle="@string/home_card_battery_subtitle" />
 
-    <!-- 测试对话 -->
-    <com.apk.claw.android.widget.KButton
-        android:id="@+id/btnTestChat"
-        android:layout_width="match_parent"
-        android:layout_height="48pt"
-        android:layout_marginTop="12pt"
-        android:text="@string/home_test_chat"
-        android:textSize="16sp"
-        app:btnBackground="@color/colorBrandPrimary"
-        app:btnTextColor="@color/colorBrandOnPrimary"
-        app:layout_constraintTop_toBottomOf="@id/btnCancelTask" />
+            <!-- 文件读写 -->
+            <com.apk.claw.android.widget.PermissionCardView
+                android:id="@+id/cardStorage"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12pt"
+                app:cardIcon="@drawable/ic_storage"
+                app:cardTitle="@string/home_card_storage_title"
+                app:cardSubtitle="@string/home_card_storage_subtitle" />
+
+            <!-- 结束当前会话 -->
+            <com.apk.claw.android.widget.KButton
+                android:id="@+id/btnCancelTask"
+                android:layout_width="match_parent"
+                android:layout_height="48pt"
+                android:layout_marginTop="24pt"
+                android:text="@string/home_cancel_task"
+                android:textSize="16sp"
+                android:visibility="gone"
+                app:btnBackground="@color/colorErrorPrimary"
+                app:btnTextColor="@color/colorErrorOnPrimary" />
+
+            <!-- 测试对话 -->
+            <com.apk.claw.android.widget.KButton
+                android:id="@+id/btnTestChat"
+                android:layout_width="match_parent"
+                android:layout_height="48pt"
+                android:layout_marginTop="12pt"
+                android:layout_marginBottom="24pt"
+                android:text="@string/home_test_chat"
+                android:textSize="16sp"
+                app:btnBackground="@color/colorBrandPrimary"
+                app:btnTextColor="@color/colorBrandOnPrimary" />
+
+        </LinearLayout>
+
+    </ScrollView>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
