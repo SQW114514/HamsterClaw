@@ -10,9 +10,17 @@ data class AgentConfig(
     val maxIterations: Int = 60,
     val temperature: Double = 0.1,
     val provider: LlmProvider = LlmProvider.OPENAI,
-    val streaming: Boolean = false
+    val streaming: Boolean = false,
+    val thinkingMode: Boolean = false
 ) {
     companion object {
+        fun defaultBaseUrl(provider: LlmProvider): String = when (provider) {
+            LlmProvider.OPENAI -> "https://api.openai.com/v1"
+            LlmProvider.ANTHROPIC -> "https://api.anthropic.com/v1"
+            LlmProvider.OPENGODE_GO -> "https://opencode.ai/zen/go/v1"
+            LlmProvider.DEEPSEEK -> "https://api.deepseek.com/v1"
+        }
+
         const val DEFAULT_SYSTEM_PROMPT =
             """## ROLE
 你是一个控制 Android 手机的智能助手（AI Agent）。你通过无障碍服务提供的工具与设备交互，完成用户的任务。
@@ -101,6 +109,7 @@ data class AgentConfig(
         private var temperature: Double = 0.1
         private var provider: LlmProvider = LlmProvider.OPENAI
         private var streaming: Boolean = false
+        private var thinkingMode: Boolean = false
 
         fun apiKey(apiKey: String) = apply { this.apiKey = apiKey }
         fun baseUrl(baseUrl: String) = apply { this.baseUrl = baseUrl }
@@ -110,10 +119,11 @@ data class AgentConfig(
         fun temperature(temperature: Double) = apply { this.temperature = temperature }
         fun provider(provider: LlmProvider) = apply { this.provider = provider }
         fun streaming(streaming: Boolean) = apply { this.streaming = streaming }
+        fun thinkingMode(thinkingMode: Boolean) = apply { this.thinkingMode = thinkingMode }
 
         fun build(): AgentConfig {
             require(apiKey.isNotEmpty()) { "API key is required" }
-            return AgentConfig(apiKey, baseUrl, modelName, systemPrompt, maxIterations, temperature, provider, streaming)
+            return AgentConfig(apiKey, baseUrl, modelName, systemPrompt, maxIterations, temperature, provider, streaming, thinkingMode)
         }
     }
 }
