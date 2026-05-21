@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/colorBgSecondary">
+
+    <com.apk.claw.android.widget.CommonToolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="56pt"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <androidx.cardview.widget.CardView
+        android:id="@+id/cardInput"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="12pt"
+        app:cardBackgroundColor="@color/colorContainerBrighten"
+        app:cardCornerRadius="16pt"
+        app:cardElevation="2pt"
+        app:layout_constraintBottom_toBottomOf="parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="12pt"
+            android:paddingVertical="8pt">
+
+            <EditText
+                android:id="@+id/etMessage"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@null"
+                android:hint="@string/chat_input_hint"
+                android:imeOptions="actionSend"
+                android:inputType="text"
+                android:maxLines="4"
+                android:minHeight="36pt"
+                android:textColor="@color/colorTextPrimary"
+                android:textColorHint="@color/colorTextTertiary"
+                android:textSize="15pt" />
+
+            <ImageButton
+                android:id="@+id/btnSend"
+                android:layout_width="40pt"
+                android:layout_height="40pt"
+                android:layout_marginStart="8pt"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/chat_send"
+                android:src="@android:drawable/ic_menu_send"
+                android:tint="@color/colorBrandPrimary" />
+
+        </LinearLayout>
+
+    </androidx.cardview.widget.CardView>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvMessages"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:clipToPadding="false"
+        android:paddingTop="8pt"
+        android:paddingBottom="8pt"
+        app:layout_constraintBottom_toTopOf="@id/cardInput"
+        app:layout_constraintTop_toBottomOf="@id/toolbar" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
