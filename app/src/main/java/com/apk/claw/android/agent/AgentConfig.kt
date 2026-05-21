@@ -1,6 +1,6 @@
 package com.apk.claw.android.agent
 
-enum class LlmProvider { OPENAI, ANTHROPIC }
+enum class LlmProvider { OPENAI, ANTHROPIC, OPENGODE_GO, DEEPSEEK }
 
 data class AgentConfig(
     val apiKey: String,
