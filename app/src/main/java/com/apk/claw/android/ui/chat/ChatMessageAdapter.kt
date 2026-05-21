@@ -18,6 +18,10 @@ class ChatMessageAdapter(
         private const val TYPE_USER = 0
         private const val TYPE_ASSISTANT = 1
         private const val TYPE_TOOL_LOG = 2
+        private fun formatTime(timestamp: Long): String {
+            val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
+            return sdf.format(Date(timestamp))
+        }
     }
 
     override fun getItemViewType(position: Int): Int = when (messages[position].role) {
@@ -82,10 +86,5 @@ class ChatMessageAdapter(
         fun bind(msg: ChatMessage) {
             tvContent.text = msg.content
         }
-    }
-
-    private fun formatTime(timestamp: Long): String {
-        val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
-        return sdf.format(Date(timestamp))
     }
 }
