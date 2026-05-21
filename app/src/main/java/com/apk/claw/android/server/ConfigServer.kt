@@ -213,6 +213,8 @@ class ConfigServer(
             addProperty("llmApiKey", apiKey)
             addProperty("llmBaseUrl", KVUtils.getLlmBaseUrl())
             addProperty("llmModelName", KVUtils.getLlmModelName())
+            addProperty("llmProvider", KVUtils.getLlmProvider())
+            addProperty("llmThinkingMode", KVUtils.isLlmThinkingMode())
         }
         val result = JsonObject().apply {
             addProperty("code", 0)
@@ -250,6 +252,12 @@ class ConfigServer(
         if (json.has("llmModelName")) {
             val value = json.get("llmModelName").asString.trim()
             KVUtils.setLlmModelName(if (value.isEmpty()) "" else value)
+        }
+        if (json.has("llmProvider")) {
+            KVUtils.setLlmProvider(json.get("llmProvider").asString)
+        }
+        if (json.has("llmThinkingMode")) {
+            KVUtils.setLlmThinkingMode(json.get("llmThinkingMode").asBoolean)
         }
 
         ConfigServerManager.notifyConfigChanged()
